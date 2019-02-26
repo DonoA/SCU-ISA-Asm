@@ -1,80 +1,6 @@
 const fs = require('fs');
 const util = require('util');
-
-const instNameMap = {
-    'nop': {
-        op: 0b0000,
-        encode: () => {
-            return packDefType(0, 0, 0, 0);
-        }
-    },
-    'ldpc': {
-        op: 0b1111,
-        encode: (op, instr) => {
-            return packDefType(op, instr.args[0].value, 0, 0);
-        }
-    },
-    'ld': {
-        op: 0b1110,
-        encode: (op, instr) => {
-            return packDefType(op, instr.args[0].value, instr.args[1].value, 0);
-        }
-    },
-    'st': {
-        op: 0b0011,
-        encode: (op, instr) => {
-            return packDefType(op, 0, instr.args[1].value, instr.args[0].value);
-        }
-    },
-    'add': {
-        op: 0b0100,
-        encode: (op, instr) => {
-            return packDefType(op, instr.args[0].value, instr.args[1].value, instr.args[2].value);
-        }
-    },
-    'inc': {
-        op: 0b0101,
-        encode: (op, instr) => {
-            return packDefType(op, instr.args[0].value, instr.args[1].value, 0);
-        }
-    },
-    'neg': {
-        op: 0b0110,
-        encode: (op, instr) => {
-            return packDefType(op, instr.args[0].value, instr.args[1].value, 0);
-        }
-    },
-    'sub': {
-        op: 0b0111,
-        encode: (op, instr) => {
-            return packDefType(op, instr.args[0].value, instr.args[1].value, instr.args[2].value);
-        }
-    },
-    'j': {
-        op: 0b1000,
-        encode: (op, instr) => {
-            return packDefType(op, 0, instr.args[0].value, 0);
-        }
-    },
-    'brz': {
-        op: 0b1001,
-        encode: (op, instr) => {
-            return packDefType(op, 0, instr.args[0].value, 0);
-        }
-    },
-    'jm': {
-        op: 0b1010,
-        encode: (op, instr) => {
-            return packDefType(op, 0, instr.args[0].value, 0);
-        }
-    },
-    'brn': {
-        op: 0b1011,
-        encode: (op, instr) => {
-            return packDefType(op, 0, instr.args[0].value, 0);
-        }
-    },
-};
+const isa = require('./isa');
 
 const valueType = 'value';
 const regType = 'reg';
@@ -93,7 +19,7 @@ function splitInstr(labelTable, inst) {
     const rest = inst.substring(splitPoint + 1);
     const args = rest.split(/,\s*/).map((e, i) => {
         if(e.trim() === '') {
-            console.error('Invalid empty parameter in:', inst, 'param id:', i);
+            console.error('Invalid empty parameter in: "' + inst + '" param id:', i);
             process.exit(1);
         }
         return e;
@@ -115,7 +41,7 @@ function splitInstr(labelTable, inst) {
                 value: parseInt(e)
             };
         } else {
-            console.error('Cannot parse value instruction:', inst, 'param id:', i);
+            console.error('Unexpected value token in instruction: "' + inst + '" param id:', i);
             process.exit(1);
         }
     });
@@ -123,20 +49,6 @@ function splitInstr(labelTable, inst) {
         inst: name,
         args: args,
     };
-}
-
-function paddedBinArr(v, len) {
-    return v.toString(2).padStart(len, '0').split('');
-}
-
-function packDefType(op, rd, rs, rt) {
-    op = paddedBinArr(op, 4);
-    rd = paddedBinArr(op, 5);
-    rs = paddedBinArr(op, 5);
-    rt = paddedBinArr(op, 5);
-    const padding = paddedBinArr(0, 10);
-    const bitArray = op.concat(rd).concat(rs).concat(rt).concat(padding);
-    return parseInt(bitArray.join(''), 2);
 }
 
 function cleanLabels(rawInput) {
@@ -166,6 +78,7 @@ function main() {
 
     if(process.argv.length < 3) {
         console.log('Usage: node asem.js [-f bin | dec | hex] [-e] [-v] <input file> [output file]');
+        process.exit(1);
     }
 
     let currentArg = 2;
@@ -188,6 +101,9 @@ function main() {
         } else if(process.argv[currentArg][1] === 'v') {
             config.verbose = true;
             currentArg += 1;
+        } else {
+            console.error('bad flag', process.argv[currentArg][1]);
+            process.exit(1);
         }
     }
 
@@ -216,7 +132,7 @@ function main() {
     }
 
     const encoders = decoded.map((instr, index) => {
-        const encoder = instNameMap[instr.inst];
+        const encoder = isa.fromName(instr.inst);
         if(encoder === undefined) {
             console.error('No op code for', instr.inst, 'line:', index + 1, '\n => ', line);
             process.exit(1);
