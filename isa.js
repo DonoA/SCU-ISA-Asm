@@ -1,14 +1,15 @@
 function paddedBinArr(v, len) {
+    v = v || 0;
     return v.toString(2).padStart(len, '0').split('');
 }
 
-function packDefType(op, rd, rs, rt) {
+function packDefType(op, rd, rs, rt, imediate) {
     op = paddedBinArr(op, 4);
-    rd = paddedBinArr(rd, 5);
-    rs = paddedBinArr(rs, 5);
-    rt = paddedBinArr(rt, 5);
-    const padding = paddedBinArr(0, 10);
-    const bitArray = op.concat(rd).concat(rs).concat(rt).concat(padding);
+    rd = paddedBinArr(rd, 6);
+    rs = paddedBinArr(rs, 6);
+    rt = paddedBinArr(rt, 6);
+    imediate = paddedBinArr(imediate, 10);
+    const bitArray = op.concat(rd).concat(rs).concat(rt).concat(imediate);
     return parseInt(bitArray.join(''), 2);
 }
 
@@ -23,7 +24,7 @@ const instNameMap = {
     'ldpc': {
         op: 0b1111,
         encode: (op, instr) => {
-            return packDefType(op, instr.args[0].value, 0, 0);
+            return packDefType(op, instr.args[0].value, 0, 0, instr.args[1].value);
         },
         execute: (vm, instr) => {
             const pc_x = vm.pc + instr.imediate;

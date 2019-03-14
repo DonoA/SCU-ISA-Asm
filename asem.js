@@ -5,7 +5,7 @@ const isa = require('./isa');
 const valueType = 'value';
 const regType = 'reg';
 
-function splitInstr(labelTable, inst) {
+function splitInstr(labelTable, inst, line) {
     inst = inst.toLowerCase();
 
     const splitPoint = inst.indexOf(' ');
@@ -28,7 +28,7 @@ function splitInstr(labelTable, inst) {
         if(labelValue !== undefined) {
             return {
                 type: valueType,
-                value: labelValue
+                value: labelValue - line - 1
             };
         } else if(e[0] === 'r') {
             return {
@@ -126,7 +126,7 @@ function main() {
         console.log('first pass:', firstPass);
     }
 
-    const decoded = firstPass.instructions.map((line) => splitInstr(firstPass.labelTable, line));
+    const decoded = firstPass.instructions.map((line, ind) => splitInstr(firstPass.labelTable, line, ind));
     if(config.verbose) {
         console.log('decoded:', util.inspect(decoded, false, null, true));
     }
@@ -155,6 +155,10 @@ function main() {
         if(config.outputFormat === 'hex') {
             return encoded.toString(16).padStart(8, '0');
         }
+    });
+
+    encodedOutput = encodedOutput.map((str, i) => {
+        return 'assign instructions[' + i + '] = 32\'b' + str + ';' + '// ' + firstPass.instructions[i];
     });
 
     fs.writeFileSync(config.outputFile, encodedOutput.join('\n'));
