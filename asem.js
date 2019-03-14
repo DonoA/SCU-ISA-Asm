@@ -134,7 +134,7 @@ function main() {
     const encoders = decoded.map((instr, index) => {
         const encoder = isa.fromName(instr.inst);
         if(encoder === undefined) {
-            console.error('No op code for', instr.inst, 'line:', index + 1, '\n => ', line);
+            console.error('No op code for', instr.inst, 'line:', index + 1);
             process.exit(1);
         }
         return {
