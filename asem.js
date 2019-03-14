@@ -126,7 +126,7 @@ function main() {
         console.log('first pass:', firstPass);
     }
 
-    const decoded = firstPass.instructions.map((line, ind) => splitInstr(firstPass.labelTable, line, ind));
+    const decoded = firstPass.instructions.filter((e) => e !== '').map((line, ind) => splitInstr(firstPass.labelTable, line, ind));
     if(config.verbose) {
         console.log('decoded:', util.inspect(decoded, false, null, true));
     }
